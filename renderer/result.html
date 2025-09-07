@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bible Screen</title>
+  <style>
+    :root { color-scheme: dark; --fs:100px; }
+    html, body { margin:0; height:100%; background:#0b0b0b; color:#f2f2f2; font-family: system-ui, AppleSDGothicNeo,"Segoe UI",Roboto,Arial; }
+    .wrap { padding:18px 20px 28px; line-height:1.8; height:100vh; overflow:hidden; }
+    .item { margin-bottom:10px; font-size:var(--fs); }
+    .ref { color:#9ad; font-weight:600; margin-right:8px; }
+    .text { white-space: pre-wrap; word-break: keep-all; }
+    .hide-ref .ref { display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="list"></div>
+  <script src="./result.js"></script>
+</body>
+</html>

@@ -1,39 +1,44 @@
 {
   "name": "bible-viewer",
-  "version": "1.2.0",
-  "description": "Select Bible book/chapter/verse and display passages on chosen monitor.",
-  "author": "Your Name",
+  "version": "2.1.0",
+  "description": "성경 구절 선택/표시용 Bible Viewer",
+  "author": "dode777",
   "main": "main.js",
-  "private": true,
   "scripts": {
-    "dev": "electron .",
+    "start": "electron .",
+    "dev": "electronmon .",
     "build": "electron-builder"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-builder": "^24.0.0"
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "electronmon": "^2.0.2"
   },
   "build": {
-    "appId": "com.example.bibleviewer",
+    "appId": "com.dode777.bibleviewer",
     "productName": "Bible Viewer",
     "files": [
       "main.js",
       "preload.js",
-      "renderer/**/*",
-      "assets/**/*",
+      "assets/**",
+      "renderer/**",
       "package.json"
     ],
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        }
-      ],
-      "icon": "assets/icon.ico"
-    },
     "directories": {
-      "output": "dist"
+      "buildResources": "assets"
+    },
+    "extraResources": [
+      {
+        "from": "assets/",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "artifactName": "BibleViewer-${version}.exe"
     }
   }
 }

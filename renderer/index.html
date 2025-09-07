@@ -3,388 +3,72 @@
 <head>
   <meta charset="utf-8" />
   <title>Bible Viewer</title>
-  <style>
-    :root { color-scheme: dark; }
-    body {
-      margin:0; background:#0b0b0b; color:#eee;
-      font-family: system-ui, AppleSDGothicNeo, "Segoe UI", Roboto, Arial;
-      padding-bottom: 74px; /* 고정 푸터 높이 확보 */
-    }
-
-    /* ===== Header ===== */
-    header {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 18px; border-bottom:1px solid #222;
-    }
-    .header-left {
-      display:grid; grid-auto-flow: column; align-items:center; column-gap:10px;
-    }
-    .header-left label { color:#aab; font-size:14px; margin:0; }
-    .header-left select, .header-left input[type="number"] {
-      padding:8px 10px; border-radius:10px; border:1px solid #333;
-      background:#141414; color:#eee; outline:none; font-size:14px;
-    }
-    .header-left select { min-width: 220px; }
-    .header-left input[type="number"] { width: 96px; }
-
-    .header-right button {
-      padding:10px 16px; border-radius:10px; border:1px solid #333;
-      background:#1f1f1f; color:#eee; font-size:15px; cursor:pointer;
-    }
-    .header-right button:hover { background:#272727; }
-
-    /* ===== Content ===== */
-    .wrap { padding:20px 18px; display:grid; gap:14px; }
-
-    select, input[type="number"] {
-      padding:10px 12px; border-radius:10px; border:1px solid #333;
-      background:#141414; color:#eee; outline:none; font-size:15px;
-    }
-    label { color:#aab; font-size:14px; margin:0; }
-
-    /* 행: 책/범위 공통 규격 */
-    .row.book-range {
-      display:grid; grid-template-columns: 64px 240px 1fr;
-      column-gap:10px; align-items:center;
-    }
-    .row.book-range select { width:240px; }
-
-    .row.range {
-      display:grid; grid-template-columns: 64px 120px 28px 120px 28px 1fr;
-      column-gap:10px; align-items:center;
-    }
-    .row.range select { width:120px; }
-
-    /* ===== Footer (고정) ===== */
-    footer.footer {
-      position:fixed; left:0; right:0; bottom:0;
-      background:#0b0b0b; border-top:1px solid #222;
-    }
-    .footer-inner {
-      padding:10px 18px; color:#96a0aa; font-size:13px;
-      display:flex; align-items:center; gap:16px;
-    }
-    .footer-left {
-      display:grid; grid-template-rows: auto auto; row-gap:6px; flex:1 1 auto;
-    }
-    .footer-left .line { display:flex; align-items:center; gap:10px; }
-    .dot { width:6px; height:6px; border-radius:50%; background:#555; display:inline-block; }
-
-    .footer-right {
-      flex:0 0 auto;
-    }
-    .footer-right button {
-      padding:10px 16px; border-radius:10px; border:1px solid #333;
-      background:#1f1f1f; color:#eee; font-size:15px; cursor:pointer;
-    }
-    .footer-right button:hover { background:#272727; }
-
-    /* 토스트 */
-    .toast {
-      position: fixed; right: 18px; top: 12px;
-      background: #1c1c1c; color:#eee; padding:10px 14px; border:1px solid #333;
-      border-radius:10px; opacity:0; transform: translateY(-8px);
-      transition: all .25s ease;
-      pointer-events:none; z-index: 20;
-      font-size:14px;
-    }
-    .toast.show { opacity:1; transform: translateY(0); }
-  </style>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <!-- 헤더: 좌측(표시 모니터/폰트), 우측(설정 저장 버튼) -->
   <header>
     <div class="header-left">
-      <label for="display">표시 모니터</label>
+      <label for="display">모니터</label>
       <select id="display"></select>
 
       <label for="font">폰트(px)</label>
-      <input id="font" type="number" min="14" max="96" step="1" value="100" />
+      <!-- 기본값 100은 JS에서 settings로 셋업 -->
+      <input id="font" type="number" min="30" max="200" step="1" value="100" />
+
+      <label for="mode">모드</label>
+      <select id="mode">
+        <option value="scroll">스크롤</option>
+        <option value="slide">슬라이드</option>
+        <option value="slide-scroll">슬라이드+스크롤</option>
+      </select>
+
+      <label for="showRef">장/절 표시</label>
+      <input id="showRef" type="checkbox" checked />
     </div>
     <div class="header-right">
-      <button id="savePrefsBtn">설정 저장</button>
+      <div id="savedCheck" class="saved-check"></div>
     </div>
   </header>
 
   <div class="wrap">
-    <!-- 책 (구약/신약 optgroup + 풀네임) -->
     <div class="row book-range">
       <label for="book">책</label>
       <select id="book"></select>
       <div></div>
     </div>
 
-    <!-- 시작 -->
-    <div class="row range">
-      <label>시작</label>
-      <select id="sCh" aria-label="시작 장"></select>
+    <div class="row range" id="rowStart">
+      <label id="labelStart">시작</label>
+      <select id="sCh" aria-label="장"></select>
       <label>장</label>
-      <select id="sVs" aria-label="시작 절"></select>
+      <select id="sVs" aria-label="절"></select>
       <label>절</label>
       <div></div>
     </div>
 
-    <!-- 끝 (+ 동일 체크박스은 유지되며 자동 제어 로직은 JS에서 처리) -->
-    <div class="row range">
+    <div class="row range" id="rowEnd">
       <label>끝</label>
       <select id="eCh" aria-label="끝 장"></select>
       <label>장</label>
       <select id="eVs" aria-label="끝 절"></select>
       <label>절</label>
-      <label><input type="checkbox" id="sameEnd" /> 끝 장/절 동일</label>
+      <label id="sameWrap"><input type="checkbox" id="sameEnd" /> 시작 장/절과 동일</label>
     </div>
   </div>
 
-  <!-- 고정 푸터: 좌 2줄 안내, 우 버튼 -->
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <div class="line"><span class="dot"></span><span>책을 고르면 장/절 목록이 자동 갱신됩니다.</span></div>
-        <div class="line"><span class="dot"></span><span>“끝 장/절 동일” 체크 시 끝값은 비활성화되고 시작값을 따라갑니다.</span></div>
-      </div>
-      <div class="footer-right">
-        <button id="showBtn">구절 띄우기</button>
-      </div>
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-left" id="footerMsg">
+      <!-- JS에서 모드별로 채움 -->
     </div>
-  </footer>
+    <div class="footer-right">
+      <button id="showBtn">스크린 켜기</button>
+    </div>
+  </div>
+</footer>
 
-  <!-- 토스트 -->
   <div id="toast" class="toast">저장되었습니다</div>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const $book = $('book'), $sCh = $('sCh'), $sVs = $('sVs'), $eCh = $('eCh'), $eVs = $('eVs');
-    const $same = $('sameEnd'), $font = $('font'), $disp = $('display');
-    const $btn = $('showBtn'), $save = $('savePrefsBtn');
-    const $toast = $('toast');
-
-    // 약어→풀네임 + 구약/신약 순서
-    const BOOK_NAME_MAP = {
-      "창":"창세기","출":"출애굽기","레":"레위기","민":"민수기","신":"신명기","수":"여호수아","삿":"사사기","룻":"룻기",
-      "삼상":"사무엘상","삼하":"사무엘하","왕상":"열왕기상","왕하":"열왕기하","대상":"역대상","대하":"역대하","스":"에스라",
-      "느":"느헤미야","에":"에스더","욥":"욥기","시":"시편","잠":"잠언","전":"전도서","아":"아가","사":"이사야","렘":"예레미야",
-      "애":"예레미야애가","겔":"에스겔","단":"다니엘","호":"호세아","욜":"요엘","암":"아모스","옵":"오바댜","욘":"요나","미":"미가",
-      "나":"나훔","합":"하박국","습":"스바냐","학":"학개","슥":"스가랴","말":"말라기",
-      "마":"마태복음","막":"마가복음","눅":"누가복음","요":"요한복음","행":"사도행전","롬":"로마서","고전":"고린도전서",
-      "고후":"고린도후서","갈":"갈라디아서","엡":"에베소서","빌":"빌립보서","골":"골로새서","살전":"데살로니가전서",
-      "살후":"데살로니가후서","딤전":"디모데전서","딤후":"디모데후서","딛":"디도서","몬":"빌레몬서","히":"히브리서","약":"야고보서",
-      "벧전":"베드로전서","벧후":"베드로후서","요일":"요한일서","요이":"요한이서","요삼":"요한삼서","유":"유다서","계":"요한계시록"
-    };
-    const OT_ORDER = ["창","출","레","민","신","수","삿","룻","삼상","삼하","왕상","왕하","대상","대하","스","느","에","욥","시","잠","전","아","사","렘","애","겔","단","호","욜","암","옵","욘","미","나","합","습","학","슥","말"];
-    const NT_ORDER = ["마","막","눅","요","행","롬","고전","고후","갈","엡","빌","골","살전","살후","딤전","딤후","딛","몬","히","약","벧전","벧후","요일","요이","요삼","유","계"];
-
-    let META = null;
-    let DISPINFO = null;
-
-    init();
-
-    async function init() {
-      META = await window.bibleAPI.getMeta();
-      DISPINFO = await window.bibleAPI.getDisplays();
-
-      buildBookSelect();
-
-      // 디스플레이 select
-      const DISP = DISPINFO.displays;
-      for (const d of DISP) {
-        const opt = document.createElement('option');
-        opt.value = d.id;
-        opt.textContent = `${d.name} ${d.isPrimary ? '(주)' : ''} ${d.size} ${d.pos}`;
-        $disp.appendChild(opt);
-      }
-      // 저장된 기본값 반영
-      const defId = DISPINFO.defaultDisplayId;
-      if (defId && DISP.some(d => d.id === defId)) {
-        $disp.value = String(defId);
-      } else {
-        const primary = DISP.find(d => d.isPrimary);
-        if (primary) $disp.value = String(primary.id);
-      }
-      if (typeof DISPINFO.defaultFontSize === 'number') {
-        $font.value = String(DISPINFO.defaultFontSize);
-      }
-
-      // 이벤트
-      $book.addEventListener('change', onBook);
-      $sCh.addEventListener('change', () => { onStartChapter(); enforceRules(); });
-      $sVs.addEventListener('change', () => { syncIfSame(); enforceRules(); });
-      $eCh.addEventListener('change', () => { onEndChapter(); enforceRules(); });
-      $eVs.addEventListener('change', enforceRules);
-      $same.addEventListener('change', onSameToggle);
-
-      $btn.addEventListener('click', onShow);
-      $save.addEventListener('click', onSavePrefs);
-
-      // 초기 책/장/절
-      const first = firstAvailableAbbr();
-      if (first) { $book.value = first; onBook(); }
-    }
-
-    function buildBookSelect() {
-      $book.innerHTML = '';
-      const groups = [{ label:'───── 구약 ─────', list: OT_ORDER }, { label:'───── 신약 ─────', list: NT_ORDER }];
-      for (const g of groups) {
-        const og = document.createElement('optgroup');
-        og.label = g.label;
-        for (const abbr of g.list) {
-          if (!META.books.includes(abbr)) continue;
-          const opt = document.createElement('option');
-          opt.value = abbr;
-          opt.textContent = BOOK_NAME_MAP[abbr] || abbr;
-          og.appendChild(opt);
-        }
-        if (og.children.length) $book.appendChild(og);
-      }
-    }
-
-    function firstAvailableAbbr() {
-      for (const a of [...OT_ORDER, ...NT_ORDER]) {
-        if (META.books.includes(a)) return a;
-      }
-      return META.books?.[0] || null;
-    }
-
-    function onBook() {
-      const b = $book.value;
-      const chArr = META.chapters[b] || [];
-      fillChSelect($sCh, chArr);
-      fillChSelect($eCh, chArr);
-      if (chArr.length) {
-        $sCh.value = String(chArr[0].chapter);
-        $eCh.value = String(chArr[0].chapter);
-        onStartChapter();
-        onEndChapter();
-        syncIfSame();
-        enforceRules();
-      }
-    }
-
-    function fillChSelect(sel, chArr) {
-      sel.innerHTML = '';
-      for (const { chapter } of chArr) {
-        const opt = document.createElement('option');
-        opt.value = chapter;
-        opt.textContent = chapter;
-        sel.appendChild(opt);
-      }
-    }
-
-    function fillVsSelect(sel, maxVerse) {
-      sel.innerHTML = '';
-      for (let i = 1; i <= maxVerse; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        sel.appendChild(opt);
-      }
-    }
-
-    function getMaxVerse(b, ch) {
-      const found = (META.chapters[b] || []).find(x => x.chapter === Number(ch));
-      return found ? found.maxVerse : 1;
-    }
-
-    function getLastRef(bookAbbr) {
-      const list = (META.chapters[bookAbbr] || []).map(x => x.chapter).sort((a,b)=>a-b);
-      const lastCh = list.length ? list[list.length - 1] : 1;
-      const lastVs = getMaxVerse(bookAbbr, lastCh);
-      return { lastCh, lastVs };
-    }
-
-    function cmpRef(aCh, aVs, bCh, bVs) {
-      const ac = Number(aCh), av = Number(aVs);
-      const bc = Number(bCh), bv = Number(bVs);
-      if (ac < bc) return -1;
-      if (ac > bc) return 1;
-      if (av < bv) return -1;
-      if (av > bv) return 1;
-      return 0;
-    }
-
-    function onStartChapter() {
-      const b = $book.value;
-      const maxV = getMaxVerse(b, $sCh.value);
-      fillVsSelect($sVs, maxV);
-      if (Number($sVs.value) < 1) $sVs.value = "1";
-      syncIfSame();
-    }
-
-    function onEndChapter() {
-      const b = $book.value;
-      const maxV = getMaxVerse(b, $eCh.value);
-      fillVsSelect($eVs, maxV);
-      if (Number($eVs.value) < 1) $eVs.value = String(maxV);
-    }
-
-    function onSameToggle() {
-      const same = $same.checked;
-      $eCh.disabled = same;
-      $eVs.disabled = same;
-      if (same) syncIfSame();
-    }
-
-    function syncIfSame() {
-      if (!$same.checked) return;
-      $eCh.value = $sCh.value;
-      const maxEnd = getMaxVerse($book.value, $eCh.value);
-      const sVal = Number($sVs.value);
-      fillVsSelect($eVs, maxEnd);
-      $eVs.value = String(Math.min(sVal, maxEnd));
-    }
-
-    // 규칙:
-    // 1) 시작이 책의 마지막 절이면 -> same 자동 체크 + end=start 강제
-    // 2) 그 외: end < start 금지 → end를 start로 보정(체크박스는 건드리지 않음)
-    function enforceRules() {
-      const b = $book.value;
-      const sCh = Number($sCh.value), sVs = Number($sVs.value);
-      const eCh = Number($eCh.value), eVs = Number($eVs.value);
-
-      const { lastCh, lastVs } = getLastRef(b);
-      const isStartAtBookEnd = (sCh === lastCh && sVs === lastVs);
-      if (isStartAtBookEnd) {
-        if (!$same.checked) { $same.checked = true; onSameToggle(); }
-        return;
-      }
-
-      if (cmpRef(eCh, eVs, sCh, sVs) < 0) {
-        $eCh.value = String(sCh);
-        const maxEnd = getMaxVerse(b, sCh);
-        fillVsSelect($eVs, maxEnd);
-        $eVs.value = String(sVs);
-      }
-
-      syncIfSame();
-    }
-
-    async function onShow() {
-      const payload = {
-        book: $book.value,
-        sCh: Number($sCh.value),
-        sVs: Number($sVs.value),
-        eCh: Number($eCh.value),
-        eVs: Number($eVs.value),
-        fontSize: Number($font.value) || 100,
-        displayId: Number($disp.value)
-      };
-      if ($same.checked) { payload.eCh = payload.sCh; payload.eVs = payload.sVs; }
-      await window.bibleAPI.openPassage(payload);
-    }
-
-    async function onSavePrefs() {
-      const prefs = {
-        defaultDisplayId: Number($disp.value),
-        defaultFontSize: Number($font.value) || 100
-      };
-      await window.bibleAPI.savePrefs(prefs);
-      showToast('설정이 저장되었습니다');
-    }
-
-    function showToast(msg) {
-      $toast.textContent = msg;
-      $toast.classList.add('show');
-      setTimeout(() => $toast.classList.remove('show'), 1600);
-    }
-  </script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
