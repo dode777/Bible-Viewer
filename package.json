@@ -38,7 +38,7 @@
     ],
     "win": {
       "target": "portable",
-      "artifactName": "BibleViewer-${version}.exe"
+      "artifactName": "Bible Viewer ${version}.exe"
     }
   }
 }
