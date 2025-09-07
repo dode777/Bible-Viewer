@@ -84,6 +84,50 @@ let prevDispId = null, prevMode = null;
     setButtonOpenState($btn, opened);
   });
 
+  // ✅ 결과창이 현재 구절을 바꿨을 때(슬라이드 이동 결과) 메인 셀렉트 동기화
+  window.bibleAPI.onSlideCurrent(({ book, ch, vs /*, current*/ }) => {
+    // 책이 바뀌었다면 옵션 재구성
+    if ($book.value !== book) {
+      $book.value = book;
+      const chArr = META.chapters[book] || [];
+      fillChSelect($sCh, chArr);
+      fillChSelect($eCh, chArr);
+    }
+
+    // 시작 장/절 갱신
+    $sCh.value = String(ch);
+    const maxS = getMaxVerse(META, book, ch);
+    fillVsSelect($sVs, maxS);
+    $sVs.value = String(vs);
+
+    // 스크롤 모드였다면 끝도 동일 절로 맞춰 한 절만 보이도록(정책 맞게 조정 가능)
+    if ($mode.value === 'scroll') {
+      $eCh.value = String(ch);
+      fillVsSelect($eVs, maxS);
+      $eVs.value = String(vs);
+    }
+  });
+
+  // ✅ 메인창에서 방향키로 슬라이드 이동 (폼 포커스 여부 무시하고 동작)
+  window.addEventListener('keydown', async (e) => {
+    if (!resultOpened) return;
+    if ($mode.value !== 'slide' && $mode.value !== 'slide-scroll') return;
+
+    let dir = 0;
+    if (e.key === 'ArrowRight') dir = +1;
+    else if (e.key === 'ArrowLeft') dir = -1;
+    if (!dir) return;
+
+    // 폼 컨트롤 포커스여도 강제로 슬라이드 이동
+    e.preventDefault();
+
+    const book = $book.value;
+    const ch = +$sCh.value || 1;
+    const vs = +$sVs.value || 1;
+
+    await window.bibleAPI.slideMove({ book, ch, vs, dir });
+  });
+
   // 초기 책/장/절
   const first = firstAvailableAbbr(META, { OT_ORDER, NT_ORDER });
   if (first) { $book.value = first; onBook(); }
@@ -158,21 +202,17 @@ let prevDispId = null, prevMode = null;
     await autoSave();
   }
 
-  async function onShow() {
-    const p = getPayload();
-    await window.bibleAPI.openPassage({ ...p, displayId: +$disp.value });
-  }
+  // async function onShow() {
+  //   const p = getPayload();
+  //   await window.bibleAPI.openPassage({ ...p, displayId: +$disp.value });
+  // }
 
   async function toggleScreen() {
     if (resultOpened) {
-      // 이미 켜져 있으면 끄기
       await window.bibleAPI.closeDisplay();
-      // 라벨/상태 갱신은 onDisplayState 이벤트에서 처리됨
     } else {
-      // 꺼져 있으면 켜기
-      const p = getPayload();                 // 기존 base/payload 함수와 동일 (책/장/절/모드/폰트/참조/디스플레이 포함)
+      const p = getPayload();
       await window.bibleAPI.openPassage({ ...p, displayId: +$disp.value });
-      // 라벨/상태 갱신은 onDisplayState 이벤트에서 처리됨
     }
   }
 

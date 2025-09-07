@@ -224,6 +224,13 @@ ipcMain.handle('slide:move', async (_evt, { book, ch, vs, dir }) => {
   const next = nextVerse(book, ch, vs, dir > 0 ? +1 : -1);
   const key = `${book}${next.ch}:${next.vs}`;
   const current = { ref: key, text: BIBLE[key] || '' };
+
+  // 결과 창과 메인 창 모두에 현재 좌표 브로드캐스트
   RESULT_WIN?.webContents.send('result:slide-current', { book, ch: next.ch, vs: next.vs, current });
+  MAIN_WIN?.webContents.send('result:slide-current',   { book, ch: next.ch, vs: next.vs, current });
+
+  // ✅ 결과창 본문도 즉시 갱신(호환성 보강: result.js가 slide-current를 안 듣는 경우 대비)
+  RESULT_WIN?.webContents.send('result:update', { current });
+
   return { ok:true, ...next, current };
 });
