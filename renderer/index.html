@@ -3,71 +3,88 @@
 <head>
   <meta charset="utf-8" />
   <title>Bible Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header>
+  <header class="app-header">
     <div class="header-left">
-      <label for="display">모니터</label>
-      <select id="display"></select>
+      <div class="control">
+        <label for="display">모니터</label>
+        <select id="display" class="control-input"></select>
+      </div>
 
-      <label for="font">폰트(px)</label>
-      <!-- 기본값 100은 JS에서 settings로 셋업 -->
-      <input id="font" type="number" min="30" max="200" step="1" value="100" />
+      <div class="control">
+        <label for="font">폰트 (px)</label>
+        <input id="font" type="number" min="30" max="200" step="1" value="100" class="control-input" />
+      </div>
 
-      <label for="mode">모드</label>
-      <select id="mode">
-        <option value="scroll">스크롤</option>
-        <option value="slide">슬라이드</option>
-        <option value="slide-scroll">슬라이드+스크롤</option>
-      </select>
+      <div class="control">
+        <label for="mode">모드</label>
+        <select id="mode" class="control-input">
+          <option value="scroll">스크롤</option>
+          <option value="slide">슬라이드</option>
+          <option value="slide-scroll">슬라이드+스크롤</option>
+        </select>
+      </div>
 
-      <label for="showRef">장/절 표시</label>
-      <input id="showRef" type="checkbox" checked />
+      <div class="control checkbox-block">
+        <label for="showRef">장/절 표시</label>
+        <div class="checkbox-center">
+          <input id="showRef" type="checkbox" checked />
+        </div>
+      </div>
     </div>
+
     <div class="header-right">
-      <div id="savedCheck" class="saved-check"></div>
+      <div id="savedCheck" class="saved-check" title="설정 저장됨 표시"></div>
     </div>
   </header>
 
-  <div class="wrap">
-    <div class="row book-range">
-      <label for="book">책</label>
-      <select id="book"></select>
-      <div></div>
-    </div>
+  <main class="main-wrap">
+    <section class="section book-section">
+      <label for="book" class="section-label">책</label>
+      <div class="book-controls">
+        <select id="book" class="book-select"></select>
+        <div class="book-search-wrap">
+          <input id="bookSearch" type="search" placeholder="책 검색 (예: 디모, 데살)" autocomplete="off" />
+          <div id="bookSearchResults" class="search-results" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
 
-    <div class="row range" id="rowStart">
-      <label id="labelStart">시작</label>
-      <select id="sCh" aria-label="장"></select>
-      <label>장</label>
-      <select id="sVs" aria-label="절"></select>
-      <label>절</label>
-      <div></div>
-    </div>
+    <section class="section range-section" id="rowStart">
+      <label id="labelStart" class="section-label">시작</label>
+      <div class="range-controls">
+        <select id="sCh" aria-label="시작 장"></select>
+        <span class="tiny-label">장</span>
+        <select id="sVs" aria-label="시작 절"></select>
+        <span class="tiny-label">절</span>
+      </div>
+    </section>
 
-    <div class="row range" id="rowEnd">
-      <label>끝</label>
-      <select id="eCh" aria-label="끝 장"></select>
-      <label>장</label>
-      <select id="eVs" aria-label="끝 절"></select>
-      <label>절</label>
-      <label id="sameWrap"><input type="checkbox" id="sameEnd" /> 시작 장/절과 동일</label>
-    </div>
-  </div>
+    <section class="section range-section" id="rowEnd">
+      <label class="section-label">끝</label>
+      <div class="range-controls">
+        <select id="eCh" aria-label="끝 장"></select>
+        <span class="tiny-label">장</span>
+        <select id="eVs" aria-label="끝 절"></select>
+        <span class="tiny-label">절</span>
+        <label id="sameWrap" class="same-wrap"><input type="checkbox" id="sameEnd" /> 시작 장/절과 동일</label>
+      </div>
+    </section>
+  </main>
 
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-left" id="footerMsg">
-      <!-- JS에서 모드별로 채움 -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left" id="footerMsg"></div>
+      <div class="footer-right">
+        <button id="showBtn" class="primary-btn">스크린 켜기</button>
+      </div>
     </div>
-    <div class="footer-right">
-      <button id="showBtn">스크린 켜기</button>
-    </div>
-  </div>
-</footer>
+  </footer>
 
-  <div id="toast" class="toast">저장되었습니다</div>
+  <div id="toast" class="toast" role="status" aria-live="polite">저장되었습니다</div>
 
   <script type="module" src="./app.js"></script>
 </body>

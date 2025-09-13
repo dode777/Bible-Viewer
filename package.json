@@ -1,6 +1,6 @@
 {
   "name": "bible-viewer",
-  "version": "2.1.1",
+  "version": "2.2.1",
   "description": "성경 구절 선택/표시용 Bible Viewer",
   "author": "dode777",
   "main": "main.js",

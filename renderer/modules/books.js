@@ -56,3 +56,30 @@ export function getMaxVerse(META, b, ch) {
   const found = (META.chapters[b] || []).find(x => x.chapter === Number(ch));
   return found ? found.maxVerse : 1;
 }
+
+export function searchBooks(query, META, { OT_ORDER, NT_ORDER, BOOK_NAME_MAP }) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return [];
+
+  // Build list of { abbr, name, group }
+  const all = [];
+  const pushList = (list, groupLabel) => {
+    for (const abbr of list) {
+      if (!META.books.includes(abbr)) continue;
+      const name = BOOK_NAME_MAP[abbr] || abbr;
+      all.push({ abbr, name, group: groupLabel });
+    }
+  };
+  pushList(OT_ORDER, '구약');
+  pushList(NT_ORDER, '신약');
+
+  // Filter: abbr match or name includes or romanized startsWith — keep simple: name includes OR abbr startsWith
+  const results = all.filter(x => {
+    const nameLower = x.name.toLowerCase();
+    const abbrLower = x.abbr.toLowerCase();
+    return nameLower.includes(q) || abbrLower.startsWith(q) || nameLower.startsWith(q);
+  });
+
+  // Keep order as found (OT then NT), limit to e.g. 40
+  return results.slice(0, 40);
+}

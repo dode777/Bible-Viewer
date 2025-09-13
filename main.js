@@ -81,7 +81,7 @@ let RESULT_WIN = null;
 
 function createMain() {
   const win = new BrowserWindow({
-    width: 900, height: 560, minWidth: 900, minHeight: 560, maxWidth: 900, maxHeight:560,
+    width: 700, height: 560, minWidth: 700, minHeight: 560, maxWidth: 700, maxHeight:560,
     backgroundColor: '#0b0b0b', show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
