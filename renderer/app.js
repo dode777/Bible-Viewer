@@ -19,17 +19,21 @@ import { makeLiveUpdater, makeSelectionRefresher } from './modules/live.js';
 const $book = $('book'), $sCh = $('sCh'), $sVs = $('sVs'), $eCh = $('eCh'), $eVs = $('eVs');
 const $same = $('sameEnd'), $font = $('font'), $disp = $('display'), $mode = $('mode');
 const $showRef = $('showRef');
-const $btn = $('showBtn'), $toast = $('toast'), $saved = $('savedCheck');
+const $btn = $('showBtn'), $saved = $('savedCheck');
 const $rowStart = $('rowStart'), $rowEnd = $('rowEnd'), $labelStart = $('labelStart'), $sameWrap = $('sameWrap');
 const $footerMsg = $('footerMsg');
+const $chapCountWrap = $('chapCountWrap');
+const $chapCount = $('chapCount');
 
-// 검색 UI (선택적)
+// 검색 UI
 const $bookSearch = $('bookSearch');
 const $bookSearchResults = $('bookSearchResults');
 
 let META = null, DISPINFO = null;
 let resultOpened = false;
 let prevDispId = null, prevMode = null;
+
+let scrolling = false;
 
 (async function init() {
   META = await window.bibleAPI.getMeta();
@@ -38,7 +42,7 @@ let prevDispId = null, prevMode = null;
   // 책 셀렉트
   buildBookSelect($book, META, { OT_ORDER, NT_ORDER, BOOK_NAME_MAP });
 
-  // 디스플레이 목록 채우기
+  // 디스플레이 목록
   const DISP = DISPINFO.displays || [];
   for (const d of DISP) {
     const opt = document.createElement('option');
@@ -50,14 +54,24 @@ let prevDispId = null, prevMode = null;
   if (defId && DISP.some(d => d.id === defId)) $disp.value = String(defId);
   else { const pri = DISP.find(d => d.isPrimary); if (pri) $disp.value = String(pri.id); }
 
+  // 기본값 로드
   if (typeof DISPINFO.defaultFontSize === 'number') $font.value = String(DISPINFO.defaultFontSize);
   if (typeof DISPINFO.defaultMode === 'string') $mode.value = DISPINFO.defaultMode;
   $showRef.checked = (DISPINFO.defaultShowRef !== false);
 
+  // ✅ versesPerSlide 기본값 (없으면 1)
+  if ($chapCount) {
+    if (typeof DISPINFO.defaultVersesPerSlide === 'number') {
+      $chapCount.value = String(Math.max(1, Math.min(5, DISPINFO.defaultVersesPerSlide)));
+    } else {
+      $chapCount.value = '1';
+    }
+  }
+
   prevDispId = Number($disp.value);
   prevMode = $mode.value;
 
-  // ---- Live helpers (모듈) ----
+  // ---- Live helpers ----
   const getOpen = () => resultOpened;
   const getPayload = () => {
     const isSlide = ($mode.value === 'slide' || $mode.value === 'slide-scroll');
@@ -71,11 +85,17 @@ let prevDispId = null, prevMode = null;
       showRef: !!$showRef.checked
     };
     if ($same.checked && !isSlide) { payload.eCh = payload.sCh; payload.eVs = payload.sVs; }
+
+    // ✅ slide-scroll 전용: versesPerSlide(1~5절)
+    if ($mode.value === 'slide-scroll' && $chapCount) {
+      const vp = Math.max(1, Math.min(5, Number($chapCount.value || 1)));
+      payload.versesPerSlide = vp;
+    }
     return payload;
   };
 
-  const liveUpdateOnly = makeLiveUpdater(getOpen, getPayload);        // 옵션 변경(폰트/참조표시)
-  const selectionUpdate = makeSelectionRefresher(getOpen, getPayload); // 선택 변경(책/장/절/동일)
+  const liveUpdateOnly = makeLiveUpdater(getOpen, getPayload);         // 폰트/참조표시 변경
+  const selectionUpdate = makeSelectionRefresher(getOpen, getPayload); // 책/장/절/동일 변경
 
   // ---- Events ----
   on($book, 'change', () => { onBook(); enforceRules(META, { $book,$sCh,$sVs,$eCh,$eVs,$same }); selectionUpdate(); });
@@ -89,35 +109,81 @@ let prevDispId = null, prevMode = null;
   on($font, 'input', debounce(() => { autoSave(); liveUpdateOnly(); }, 120));
   on($showRef, 'change', () => { autoSave(); liveUpdateOnly(); });
 
+  // ✅ versesPerSlide 변경 시 저장 + 실시간 반영
+  if ($chapCount) {
+    on($chapCount, 'change', () => { autoSave(); liveUpdateOnly(); });
+  }
+
   on($mode, 'change', onModeChange);
   on($disp, 'change', onDisplayChange);
   on($btn, 'click', toggleScreen);
 
+  window.addEventListener('keydown', async (e) => {
+    if (!resultOpened) return;
+
+    // 스크롤 가능한 모드에서만
+    const m = $mode.value;
+    if (m !== 'scroll' && m !== 'slide-scroll') return;
+
+    // 입력창에서 화살표로 커서 이동하려는 경우는 통과 (예: font input, 검색창 등)
+    const tag = (document.activeElement?.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') {
+      // 숫자 input에서 화살표로 커서 이동 허용
+      if (document.activeElement?.id !== 'bookSearch') return;
+    }
+
+    let dir = 0, unit = null;
+    if (e.key === 'ArrowDown') { dir = +1; unit = e.shiftKey ? 'page' : 'line'; }
+    else if (e.key === 'ArrowUp') { dir = -1; unit = e.shiftKey ? 'page' : 'line'; }
+    else return;
+
+    // 이미 스크롤 중이면 무시 (키 반복 방지)
+    if (scrolling) return;
+    scrolling = true;
+
+    e.preventDefault();
+    try {
+      await window.bibleAPI.startScroll({ dir, unit }); // 시작 신호
+    } catch (err) {
+      console.error('startScroll error', err);
+      scrolling = false;
+    }
+  });
+
+  window.addEventListener('keyup', async (e) => {
+    if (!scrolling) return;
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+
+    try {
+      await window.bibleAPI.stopScroll(); // 중단 신호
+    } finally {
+      scrolling = false;
+    }
+  });
+
+  // 포커스가 바뀌거나 창이 비활성화될 때도 안전하게 중단
+  window.addEventListener('blur', () => { if (scrolling) window.bibleAPI.stopScroll().finally(()=> scrolling=false); });
+  
   window.bibleAPI.onDisplayState(({ opened }) => {
     resultOpened = opened;
     setButtonOpenState($btn, opened);
   });
 
-  // --------------------------
-  // 결과창에서 슬라이드 이동(또는 메인에서 slideMove의 응답)이 왔을 때
-  // 메인 창의 선책 값을 동기화한다.
+  // 결과창(또는 main)의 슬라이드 이동 브로드캐스트 → 메인 셀렉트 동기화
   window.bibleAPI.onSlideCurrent(({ book, ch, vs }) => {
     try {
       if (!book || !ch) return;
-      // 책이 바뀌면 장/절 셋업
       if ($book.value !== book) {
         $book.value = book;
         const chArr = META.chapters[book] || [];
         fillChSelect($sCh, chArr);
         fillChSelect($eCh, chArr);
       }
-      // 시작 장/절 갱신
       $sCh.value = String(ch);
       const maxS = getMaxVerse(META, book, ch);
       fillVsSelect($sVs, maxS);
       $sVs.value = String(vs);
 
-      // 스크롤 모드일 경우 끝도 동일 절로 맞춤(정책에 따라 변경 가능)
       if ($mode.value === 'scroll') {
         $eCh.value = String(ch);
         fillVsSelect($eVs, maxS);
@@ -128,8 +194,7 @@ let prevDispId = null, prevMode = null;
     }
   });
 
-  // --------------------------
-  // 메인창에서 방향키로 슬라이드 이동 (폼 포커스 여부 무시하고 동작하도록)
+  // 메인창에서 방향키로 슬라이드 이동
   window.addEventListener('keydown', async (e) => {
     if (!resultOpened) return;
     if ($mode.value !== 'slide' && $mode.value !== 'slide-scroll') return;
@@ -139,18 +204,22 @@ let prevDispId = null, prevMode = null;
     else if (e.key === 'ArrowLeft') dir = -1;
     if (!dir) return;
 
-    // 강제 이동
     e.preventDefault();
 
     const book = $book.value;
     const ch = +$sCh.value || 1;
     const vs = +$sVs.value || 1;
 
-    // (안정성) slideMove 호출 후, 응답에 본문(current)이 있으면 updateDisplay 로 보강
+    // ✅ slide-scroll 모드일 땐 versesPerSlide도 전달
+    const payload = { book, ch, vs, dir };
+    if ($mode.value === 'slide-scroll' && $chapCount) {
+      payload.mode = 'slide-scroll';
+      payload.versesPerSlide = Math.max(1, Math.min(5, Number($chapCount.value || 1)));
+    }
+
     try {
-      const res = await window.bibleAPI.slideMove({ book, ch, vs, dir });
+      const res = await window.bibleAPI.slideMove(payload);
       if (res?.ok && res.current) {
-        // 결과창에 본문 패치 보강 (main.js에서 이미 보냈다면 중복이지만 안전)
         await window.bibleAPI.updateDisplay({
           current: res.current,
           fontSize: +$font.value || 100,
@@ -163,7 +232,7 @@ let prevDispId = null, prevMode = null;
     }
   });
 
-  // ---- Book search UI (선택적) ----
+  // ---- Book search UI ----
   let searchActiveIndex = -1;
   let lastSearchList = [];
 
@@ -203,14 +272,11 @@ let prevDispId = null, prevMode = null;
 
   function selectBookByAbbr(abbr) {
     if (!abbr) return;
-    // set select value
     $book.value = abbr;
-    // trigger 기존 onBook flow
     onBook();
     enforceRules(META, { $book,$sCh,$sVs,$eCh,$eVs,$same });
     selectionUpdate();
 
-    // hide search UI
     if ($bookSearch && $bookSearchResults) {
       renderBookSearch([]);
       $bookSearch.value = '';
@@ -219,7 +285,7 @@ let prevDispId = null, prevMode = null;
   }
 
   if ($bookSearch && $bookSearchResults) {
-    $bookSearch.addEventListener('input', debounce((ev) => {
+    $bookSearch.addEventListener('input', debounce(() => {
       const q = String($bookSearch.value || '').trim();
       if (!q) { renderBookSearch([]); return; }
       const res = searchBooks(q, META, { OT_ORDER, NT_ORDER, BOOK_NAME_MAP });
@@ -260,10 +326,11 @@ let prevDispId = null, prevMode = null;
   const first = firstAvailableAbbr(META, { OT_ORDER, NT_ORDER });
   if (first) { $book.value = first; onBook(); }
 
-  toggleModeUI($mode.value, $labelStart, $rowEnd, $sameWrap);
+  // 초기 UI 세팅
+  toggleModeUI($mode.value, $labelStart, $rowEnd, $sameWrap, $chapCountWrap);
   renderFooterMsg($footerMsg, $mode.value);
 
-  // --- inner helpers that need closures ---
+  // --- inner helpers ---
   function onBook() {
     const b = $book.value;
     const chArr = META.chapters[b] || [];
@@ -279,7 +346,7 @@ let prevDispId = null, prevMode = null;
     const b = $book.value;
     const maxV = getMaxVerse(META, b, $sCh.value);
     fillVsSelect($sVs, maxV);
-    if (+$sVs.value < 1) $sVs.value = "1";
+    if (+$sVs.value < 1) $sVs.value = '1';
     syncIfSame();
   }
   function onEndChapter() {
@@ -304,19 +371,19 @@ let prevDispId = null, prevMode = null;
 
   async function onModeChange() {
     const newMode = $mode.value;
-    toggleModeUI(newMode, $labelStart, $rowEnd, $sameWrap);
+    toggleModeUI(newMode, $labelStart, $rowEnd, $sameWrap, $chapCountWrap);
     renderFooterMsg($footerMsg, newMode);
 
     if (resultOpened && newMode !== prevMode) {
       const ok = confirm('스크린을 다시 열어야 합니다. 설정을 변경하시겠습니까?');
-      if (!ok) { $mode.value = prevMode; toggleModeUI(prevMode, $labelStart, $rowEnd, $sameWrap); return; }
+      if (!ok) { $mode.value = prevMode; toggleModeUI(prevMode, $labelStart, $rowEnd, $sameWrap, $chapCount); return; }
       await window.bibleAPI.closeDisplay();
     }
 
     prevMode = newMode;
     await autoSave();
     enforceRules(META, { $book,$sCh,$sVs,$eCh,$eVs,$same });
-    selectionUpdate(); // 모드 바뀌면 콘텐츠 기준도 바뀜
+    selectionUpdate();
   }
 
   async function onDisplayChange() {
@@ -339,16 +406,16 @@ let prevDispId = null, prevMode = null;
     }
   }
 
-  async function autoSave(){
+  async function autoSave() {
     let fs = Number($font.value);
     if (!Number.isFinite(fs) || fs <= 0) fs = 100;
     await savePrefs({
       defaultDisplayId: Number($disp.value),
       defaultFontSize: fs,
       defaultMode: $mode.value,
-      defaultShowRef: !!$showRef.checked
+      defaultShowRef: !!$showRef.checked,
+      defaultVersesPerSlide: Number($chapCount?.value || 1) // ✅ 저장
     });
     flashSaved(); showToast('✅ 저장되었습니다');
   }
-
-})(); 
+})();

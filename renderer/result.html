@@ -5,16 +5,42 @@
   <title>Bible Screen</title>
   <style>
     :root { color-scheme: dark; --fs:100px; }
-    html, body { margin:0; height:100%; background:#0b0b0b; color:#f2f2f2; font-family: system-ui, AppleSDGothicNeo,"Segoe UI",Roboto,Arial; }
-    .wrap { padding:18px 20px 28px; line-height:1.8; height:100vh; overflow:hidden; }
-    .item { margin-bottom:10px; font-size:var(--fs); }
-    .ref { color:#9ad; font-weight:600; margin-right:8px; }
+
+    /* 전체 문서는 스크롤 금지, 뷰포트 채우기 */
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0b0b0b;
+      color: #f2f2f2;
+      font-family: system-ui, AppleSDGothicNeo, "Segoe UI", Roboto, Arial;
+    }
+
+    /* 실제 컨텐츠 컨테이너: 화면을 꽉 채우고, 이곳만 스크롤 */
+    #list {
+      position: fixed;      /* 뷰포트 고정 */
+      inset: 0;             /* top/right/bottom/left: 0 */
+      padding: 18px 20px 28px;
+      line-height: 1.8;
+      overflow-y: auto;     /* 내부 스크롤 */
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; /* 트랙패드/터치 스크롤 부드럽게 */
+
+      /* 스크롤바 숨기기 */
+      scrollbar-width: none;              /* Firefox */
+    }
+    #list::-webkit-scrollbar { display: none; }  /* Chrome/Safari/Edge */
+
+    .item { margin-bottom: 90px; font-size: var(--fs); }
+    .ref  { color: #9ad; font-weight: 600; margin-right: 8px; }
     .text { white-space: pre-wrap; word-break: keep-all; }
-    .hide-ref .ref { display:none; }
+    .hide-ref .ref { display: none; }
   </style>
 </head>
-<body>
-  <div class="wrap" id="list"></div>
+<body tabindex="-1">
+  <!-- 결과 영역 -->
+  <div class="wrap" id="list" tabindex="-1"></div>
+
   <script src="./result.js"></script>
 </body>
 </html>

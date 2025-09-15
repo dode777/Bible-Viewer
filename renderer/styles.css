@@ -14,6 +14,11 @@
 }
 
 * { box-sizing: border-box; }
+*:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px #66afe9; /* 파란 포커스 링 */
+  border-radius: 4px;
+}
 html,body { height:100%; margin:0; font-family: system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 
 /* Header */
@@ -115,6 +120,7 @@ html,body { height:100%; margin:0; font-family: system-ui, "Segoe UI", Roboto, "
   max-height:240px; overflow:auto; z-index:30; display:none;
   box-shadow: 0 6px 20px rgba(0,0,0,0.6);
 }
+
 .search-results .group { padding:8px 10px; font-size:12px; color:var(--muted); border-bottom:1px solid rgba(255,255,255,0.02); background:transparent; }
 .search-results .item { padding:10px 12px; cursor:pointer; font-size:14px; color:var(--text); border-bottom:1px solid rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; }
 .search-results .item:hover, .search-results .item.active { background: rgba(153,175,215,0.06); }

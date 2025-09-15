@@ -16,14 +16,15 @@
 
       <div class="control">
         <label for="font">폰트 (px)</label>
+        <!-- 실제 기본값은 settings로 초기화 -->
         <input id="font" type="number" min="30" max="200" step="1" value="100" class="control-input" />
       </div>
 
       <div class="control">
         <label for="mode">모드</label>
         <select id="mode" class="control-input">
-          <option value="scroll">스크롤</option>
-          <option value="slide">슬라이드</option>
+          <option value="scroll">연속 스크롤</option>
+          <option value="slide">한절씩 슬라이드</option>
           <option value="slide-scroll">슬라이드+스크롤</option>
         </select>
       </div>
@@ -42,6 +43,7 @@
   </header>
 
   <main class="main-wrap">
+    <!-- 책 선택 + 검색 -->
     <section class="section book-section">
       <label for="book" class="section-label">책</label>
       <div class="book-controls">
@@ -53,6 +55,7 @@
       </div>
     </section>
 
+    <!-- 기준(시작) -->
     <section class="section range-section" id="rowStart">
       <label id="labelStart" class="section-label">시작</label>
       <div class="range-controls">
@@ -63,6 +66,26 @@
       </div>
     </section>
 
+    <!-- ✅ 슬라이드+스크롤 전용: 표시 절 수 (1~5) — 기준 구절 아래, 동일 UI -->
+    <!-- 라벨+셀렉트를 하나의 래퍼로 묶어 토글 시 함께 숨김 -->
+    <section class="section range-section hide" id="chapCountWrap">
+      <label for="chapCount" class="section-label">한 장 표시</label>
+      <div class="range-controls">
+        <select id="chapCount" class="control-input" aria-label="표시 절 수">
+          <option value="1">1절</option>
+          <option value="2">2절</option>
+          <option value="3">3절</option>
+          <option value="4">4절</option>
+          <option value="5">5절</option>
+        </select>
+        <!-- range 섹션의 그리드 라인을 맞추기 위한 빈 자리 -->
+        <span class="tiny-label" style="visibility:hidden;">장</span>
+        <div></div>
+        <span class="tiny-label" style="visibility:hidden;">절</span>
+      </div>
+    </section>
+
+    <!-- 끝 (슬라이드/슬라이드+스크롤에서는 숨김 처리됨) -->
     <section class="section range-section" id="rowEnd">
       <label class="section-label">끝</label>
       <div class="range-controls">
@@ -70,7 +93,10 @@
         <span class="tiny-label">장</span>
         <select id="eVs" aria-label="끝 절"></select>
         <span class="tiny-label">절</span>
-        <label id="sameWrap" class="same-wrap"><input type="checkbox" id="sameEnd" /> 시작 장/절과 동일</label>
+        <label id="sameWrap" class="same-wrap">
+          <input type="checkbox" id="sameEnd" />
+          시작 장/절과 동일
+        </label>
       </div>
     </section>
   </main>
@@ -79,7 +105,7 @@
     <div class="footer-inner">
       <div class="footer-left" id="footerMsg"></div>
       <div class="footer-right">
-        <button id="showBtn" class="primary-btn">스크린 켜기</button>
+        <button id="showBtn" class="primary-btn" tabindex="-1" >스크린 켜기</button>
       </div>
     </div>
   </footer>

@@ -22,5 +22,12 @@ contextBridge.exposeInMainWorld('bibleAPI', {
   onSlideCurrent: (cb) => ipcRenderer.on('result:slide-current', (_e, data) => cb(data)),
 
   // 슬라이드 이동
-  slideMove: (args) => ipcRenderer.invoke('slide:move', args)
+  slideMove: (args) => ipcRenderer.invoke('slide:move', args),
+
+  // 스크롤
+  startScroll: (payload) => ipcRenderer.invoke('result:start-scroll', payload),
+  stopScroll:  () => ipcRenderer.invoke('result:stop-scroll'),
+
+  onResultStartScroll: (cb) => ipcRenderer.on('result:start-scroll', (_e, p) => cb?.(p)),
+  onResultStopScroll:  (cb) => ipcRenderer.on('result:stop-scroll',  () => cb?.()),
 });
