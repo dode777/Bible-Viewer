@@ -4,7 +4,13 @@
   <meta charset="utf-8">
   <title>Bible Screen</title>
   <style>
-    :root { color-scheme: dark; --fs:100px; }
+    :root {
+      color-scheme: dark;
+      --fs: 100px; /* 렌더러에서 동적으로 변경 */
+    }
+
+    /* 레이아웃 안정화 */
+    *, *::before, *::after { box-sizing: border-box; }
 
     /* 전체 문서는 스크롤 금지, 뷰포트 채우기 */
     html, body {
@@ -14,23 +20,37 @@
       background: #0b0b0b;
       color: #f2f2f2;
       font-family: system-ui, AppleSDGothicNeo, "Segoe UI", Roboto, Arial;
+      -webkit-text-size-adjust: 100%;
     }
 
     /* 실제 컨텐츠 컨테이너: 화면을 꽉 채우고, 이곳만 스크롤 */
     #list {
-      position: fixed;      /* 뷰포트 고정 */
-      inset: 0;             /* top/right/bottom/left: 0 */
+      position: fixed;   /* 뷰포트 고정 */
+      inset: 0;          /* top/right/bottom/left: 0 */
       padding: 18px 20px 28px;
       line-height: 1.8;
-      overflow-y: auto;     /* 내부 스크롤 */
+      overflow-y: auto;  /* 내부 스크롤 */
       overflow-x: hidden;
-      -webkit-overflow-scrolling: touch; /* 트랙패드/터치 스크롤 부드럽게 */
+      overscroll-behavior: contain;          /* 바운스/상위 스크롤 방지 */
+      -webkit-overflow-scrolling: touch;     /* 터치/트랙패드 부드러운 스크롤 */
 
       /* 스크롤바 숨기기 */
-      scrollbar-width: none;              /* Firefox */
+      scrollbar-width: none;                 /* Firefox */
+      outline: none;                         /* 포커스 시 외곽선 제거(이 화면 한정) */
     }
     #list::-webkit-scrollbar { display: none; }  /* Chrome/Safari/Edge */
 
+    /* 슬라이드+스크롤에서 합성되는 마크업 기본 여백 리셋 */
+    #list section.chapter { margin: 0; padding: 0; }
+    #list section.chapter > h3 {
+      margin: 0 0 12px;  /* 상단 여백 제거 */
+      padding: 0;
+      /* 제목 숨기려면 다음 라인 주석 해제 */
+      /* display: none; */
+    }
+    #list p.verse { margin: 0 0 90px 0; }
+
+    /* 스크롤 모드(연속)에서 절 간격 */
     .item { margin-bottom: 90px; font-size: var(--fs); }
     .ref  { color: #9ad; font-weight: 600; margin-right: 8px; }
     .text { white-space: pre-wrap; word-break: keep-all; }
@@ -38,8 +58,8 @@
   </style>
 </head>
 <body tabindex="-1">
-  <!-- 결과 영역 -->
-  <div class="wrap" id="list" tabindex="-1"></div>
+  <!-- 결과 영역(렌더러에서 이 컨테이너만 스크롤) -->
+  <div id="list" tabindex="-1"></div>
 
   <script src="./result.js"></script>
 </body>
